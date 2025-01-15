@@ -1,21 +1,27 @@
+import json
 from threading import Thread
 from time import sleep
+from typing import Any
+
+from google.api_core.exceptions import InvalidArgument
+from google.api_core.retry import Retry
 
 from python_publish_subscribe.config import Config
+from python_publish_subscribe.src.Publisher import Publisher
 
 class PythonPublishSubscribe:
+    config: Config
+
     def __init__(self, config=None):
         self.config = config or {}
-        self.initialise()
 
+        self.initialise()
         self.test_func_map = {}
+        self.publisher = Publisher(self.config)
 
 
     def initialise(self):
-        print("initialise")
-
-    def run(self):
-        print("run")
+        self.config = Config(self.config)
 
 
     def add_subscription(self, callback, topic=None):
@@ -25,7 +31,15 @@ class PythonPublishSubscribe:
             "topic": topic,
             "callback": callback
         }
-        self.config.add_value_to_key(Config.ConfigKeys.SUBSCRIPTION_TOPICS, topic_dict)
+        # self.config.add_value_to_key(Config.ConfigKeys.SUBSCRIPTION_TOPICS, topic_dict)
+
+    def publish(self, topic_name, timeout: int=None, retry: Retry=None):
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                message = func(*args, **kwargs)
+                return self.publisher.publish(topic_name, message, timeout, retry)
+            return wrapper
+        return decorator
 
 
     """

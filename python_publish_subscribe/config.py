@@ -1,4 +1,7 @@
-from array import array
+import os
+from dotenv import load_dotenv, dotenv_values
+from typing import Any, Optional, Dict
+
 
 class Config:
     """
@@ -16,14 +19,20 @@ class Config:
         :param default_config: Any default configuration for when the app starts
         """
         self._config = {
-            'PUBLISH_TOPICS': []
+            'PUBLISH_TOPICS': {},
+            'SUBSCRIPTION_TOPICS': {},
+            'DEFAULT_TIMEOUT': 10,
+            'PROJECT_ID': ''
         }
 
         if default_config is None:
             default_config = DEFAULT_CONFIG
-            self._config.update(default_config)
+        self._config.update(default_config)
 
-    def get(self, key: str, default: object=None) -> object:
+    def initialise(self):
+        self.load_dot_env()
+
+    def get(self, key: str, default: object=None) -> Optional[Any]:
         """
         Get a configuration value.
         Same usage as a Dict get.
@@ -44,18 +53,19 @@ class Config:
         """
         self._config[key] = value
 
-    def update(self, data) -> None:
+    def update(self, data, throw_error=True) -> None:
         """
         Updates the configuration.
         :param data: Dictionary with updated values
+        :param throw_error: Boolean to throw error if the update fails
         """
         if isinstance(data, dict):
             self._config.update(data)
-        else:
+        elif throw_error:
             raise ValueError("Configuration data must be a dict")
 
     def add_value_to_key(self, key, value):
-        if not self._config.__contains__(key):
+        if not key in self._config:
             raise KeyError(f"Key {key} does not exist")
 
         old_values = self._config.get(key)
@@ -69,6 +79,14 @@ class Config:
 
 
     # TODO: add functionality to set config through env / local files
+
+    def load_dot_env(self) -> None:
+        dot_env_dict = dotenv_values(".env")
+
+        # if dot_env_dict['DEFAULT_TIMEOUT']:
+        #     dot_env_dict['DEFAULT_TIMEOUT'] = int(dot_env_dict['DEFAULT_TIMEOUT'])
+        self.update(dot_env_dict)
+
     def from_file(self, filename) -> None:
         import json
 
@@ -86,10 +104,12 @@ class Config:
         This isn't needed, but is used to prevent magic strings.
         """
         def __str__(self):
-            return str(self.value)
+            return str(self.name)
 
-        SUBSCRIPTION_TOPICS = 1
-        PUBLISH_TOPICS = 2
+        PROJECT_ID = 1
+        SUBSCRIPTION_TOPICS = 2
+        PUBLISH_TOPICS = 3
+        DEFAULT_TIMEOUT = 4
 
 DEFAULT_CONFIG = {
    Config.ConfigKeys.SUBSCRIPTION_TOPICS : {}

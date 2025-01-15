@@ -1,41 +1,42 @@
 from python_publish_subscribe import PythonPublishSubscribe, test
 
 ### WON'T BE PART OF THE FRAMEWORK, ONLY DOING THIS FOR QUICK TESTING
-from google.cloud import pubsub_v1
+import os
 
-PROJECT_ID = 'test-project-id'
-TOPIC_NAME = 'projects/{project_id}/topics/{topic}'.format(
-    project_id=PROJECT_ID,
-    topic='test-topic',  # Set this to something appropriate.
-)
-
-publisher = pubsub_v1.PublisherClient()
-
-try:
-    publisher.create_topic(name=TOPIC_NAME)
-    print(f"Topic '{TOPIC_NAME}' created in emulator.")
-except Exception as e:
-    print(f"Topic '{TOPIC_NAME}' already exists: {e}")
+os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
 
 ###############################
 app = PythonPublishSubscribe()
-app.run()
-app.test_run()
 
-app.config.update('PUBLISH_TOPICS', TOPIC_NAME)
+app.publisher.create_topic('new_topic')
+app.publisher.publish('new_topic', "Hello")
 
-test()
+future = app.publisher.publish('new_topic', "Hello", asynchronous=True)
+# Doing other stuff
+future.result()
 
-@app.test_decorators
-def test_function():
-    print("foo but with no bar :(")
+app.publisher.publish_batch('new_topic', ["Wow", "multiple messages", "can be sent!"])
 
-@app.test_decorator_with_params("foo")
-def test_param():
-    print("bar")
+@app.publish('new_topic')
+def send_hello(name):
+    return f"Hello {name}!"
 
-@app.test_map_function("hello_subscription")
-def test_call_function():
-    print("callback")
+send_hello("Swansea")
 
-test_param()
+# app.config.update('PUBLISH_TOPICS', TOPIC_NAME)
+
+# test()
+#
+# @app.test_decorators
+# def test_function():
+#     print("foo but with no bar :(")
+
+# @app.test_decorator_with_params("foo")
+# def test_param():
+#     print("bar")
+#
+# @app.test_map_function("hello_subscription")
+# def test_call_function():
+#     print("callback")
+#
+# test_param()
