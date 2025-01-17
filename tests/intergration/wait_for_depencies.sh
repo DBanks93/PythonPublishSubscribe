@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SERVICE_NAME=pubsub-emulator
-HEALTH_URL=http://localhost:8085/v1/projects/your-project-id/topics
+HEALTH_URL=http://localhost:8085/v1/projects/test-project/topics
 
 echo "Waiting for $SERVICE_NAME to be available"
 until curl --silent --fail $HEALTH_URL; do

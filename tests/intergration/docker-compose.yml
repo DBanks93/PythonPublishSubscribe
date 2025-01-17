@@ -10,7 +10,7 @@ services:
     command: "/bin/sh -c 'gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 --project=test-project'"
 
     healthcheck:
-      test: [ "CMD", "curl", "--silent", "--fail", "http://localhost:8085/v1/projects/your-project-id/topics" ]
+      test: [ "CMD", "curl", "--silent", "--fail", "http://localhost:8085/v1/projects/test-projetc/topics" ]
       interval: 30s
       retries: 3
       timeout: 10s
