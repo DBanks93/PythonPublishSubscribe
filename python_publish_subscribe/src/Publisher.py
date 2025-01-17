@@ -84,7 +84,7 @@ class Publisher:
             return True
         except Exception as error:
             print("Error: Something when wrong when creating topic {topic}: {error}".format(topic=topic_name, error=error))
-
+            return False
 
     def get_topic(self, topic_name: str):
         """
@@ -158,6 +158,7 @@ class Publisher:
         else:
             return published
 
+    # TODO: revisit
     def publish_batch(
             self,
             topic_name,
@@ -181,8 +182,8 @@ class Publisher:
         futures = []
 
         for message in messages:
-            result = self.publish(topic_name, message, attributes, timeout, retry, topic, True)
-            futures.append(result)
+            future = self.publish(topic_name, message, attributes, timeout, retry, topic, True)
+            futures.append(future)
 
         try:
             timeout = timeout or self._timout
