@@ -1,0 +1,17 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+protobuf = "~=5.28.3"
+typing-extensions = "~=4.12.2"
+pytest = "~=8.3.4"
+packaging = "~=24.2"
+zipp = "~=3.21.0"
+python-dotenv = "~=1.0.1"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
