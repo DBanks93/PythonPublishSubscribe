@@ -36,7 +36,6 @@ class Publisher:
     def __init__(self, config: Config, timout: int=None):
         self._publisher = pubsub_v1.PublisherClient()
         self._config = config
-
         if timout:
             self._timout = timout
         else:
