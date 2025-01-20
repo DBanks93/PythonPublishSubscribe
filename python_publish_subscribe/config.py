@@ -28,6 +28,7 @@ class Config:
         if default_config is None:
             default_config = DEFAULT_CONFIG
         self._config.update(default_config)
+        self.initialise()
 
     def initialise(self):
         self.load_dot_env()
@@ -112,5 +113,5 @@ class Config:
         DEFAULT_TIMEOUT = 4
 
 DEFAULT_CONFIG = {
-   Config.ConfigKeys.SUBSCRIPTION_TOPICS : {}
+   # Config.ConfigKeys.SUBSCRIPTION_TOPICS : {}
 }

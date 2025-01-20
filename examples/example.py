@@ -23,6 +23,21 @@ def send_hello(name):
 
 send_hello("Swansea")
 
+
+### Subscribing ###
+app.create_subscription('new_subscription', 'new_topic')
+
+def hello(message):
+    message.ack()
+    print("hi")
+
+app.subscriber.add_subscription("new_subscription", hello)
+
+if __name__ == "__main__":
+    app.run()
+
+# app.subscriber.subscribe('new_subscription', hello)
+
 # app.config.update('PUBLISH_TOPICS', TOPIC_NAME)
 
 # test()
