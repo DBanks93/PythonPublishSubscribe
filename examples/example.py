@@ -27,11 +27,23 @@ send_hello("Swansea")
 ### Subscribing ###
 app.create_subscription('new_subscription', 'new_topic')
 
+@app.subscribe("new_subscription")
 def hello(message):
-    message.ack()
     print("hi")
+    print(message.data)
 
-app.subscriber.add_subscription("new_subscription", hello)
+app.publisher.create_topic('new_topic2')
+app.publisher.publish('new_topic2', "Hello2")
+# app.create_subscription('new_subscription2', 'new_topic2')
+
+@app.subscribe("new_subscription2", topic_name="new_topic2")
+def hello2(message):
+    print("hi2")
+    print(message.data)
+
+# app.subscriber.add_subscription("new_subscription", hello)
+
+
 
 if __name__ == "__main__":
     app.run()

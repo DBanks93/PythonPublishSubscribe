@@ -1,15 +1,21 @@
 import asyncio
+import signal
 import typing
 from typing import Optional
 
 from google.cloud import pubsub_v1
 from google.api_core.exceptions import AlreadyExists
 from google.auth.api_key import Credentials
+from google.cloud.pubsub_v1.types import message
 from google.pubsub_v1 import Subscription
+from google.cloud.pubsub_v1.subscriber.message import Message
 
 from python_publish_subscribe.config import Config
+from python_publish_subscribe.src.Message import Message
 from python_publish_subscribe.src.helper import build_and_save_topic_string, is_subscription_subscription_path
 
+# TODO: Add support for credentials
+# TODO: Add ability for other pubsub types (ONE_TIME_DELIVERY etc etc) and any other config settings
 class Subscriber:
     def __init__(self, config: Config, credentials: Credentials=None):
         self._subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
@@ -41,7 +47,7 @@ class Subscriber:
         """
         self._subscriptions[subscription_name] = callback
 
-    def create_subscription(self, topic, subscription_name) -> Optional[Subscription]:
+    def create_subscription(self, subscription_name, topic) -> Optional[Subscription]:
         """
         Creates a new subscription in GCP Pub/Sub and returns it.
 
@@ -74,6 +80,9 @@ class Subscriber:
         except KeyboardInterrupt:
             print("Info: Interrupted, stopping listening to subscriptions")
 
+    def _handle_message(self, message, callback):
+        callback(message)
+
     async def _subscribe_to_subscription(self, subscription_name: str, handler: typing.Callable) -> None:
         """
         Subscribes to one subscription and calls handler.
@@ -84,19 +93,28 @@ class Subscriber:
         """
         subscription_path = self.get_subscription_path(subscription_name)
 
-        def callback(message):
-            print(message)
+        def callback(message: Message):
+            try:
+                handler(message)
+                message.ack()
+            except Exception:
+                message.nack()
+            # self._handle_message(message, handler)
+            # self._loop.create_task(self._handle_message(message, handler))
+
 
         streaming_pull_future = self._subscriber.subscribe(subscription_path, callback=callback)
         print(f"Info: Listening for messages on {subscription_name}")
 
         try:
-            await streaming_pull_future.result()
+            await asyncio.wrap_future(streaming_pull_future)
         except asyncio.CancelledError:
             print(f"Info: Subscription {subscription_name} stopped")
             streaming_pull_future.cancel()
         except Exception as error:
             print(f"Error: Something went wrong when listening to {subscription_path}: {error}")
+        finally:
+            streaming_pull_future.cancel()
 
     async def _subscribe_to_subscriptions(self) -> None:
         """

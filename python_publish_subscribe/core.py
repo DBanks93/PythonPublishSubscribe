@@ -60,6 +60,14 @@ class PythonPublishSubscribe:
                 return None
         return self.subscriber.create_subscription(subscription_name, topic)
 
+    def subscribe(self, subscription_name: str, topic_name: str=None):
+        def decorator(func):
+            if topic_name is not None:
+                self.subscriber.create_subscription(topic_name, subscription_name)
+            self.subscriber.add_subscription(subscription_name, func)
+            return func
+        return decorator
+
     def run(self):
         self.subscriber.start_subscription_tasks()
 
