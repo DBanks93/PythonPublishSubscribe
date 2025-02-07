@@ -186,8 +186,8 @@ class Publisher:
 
         try:
             timeout = timeout or self._timout
-            for futures in futures:
-                futures.result(timeout=timeout)
+            for future in futures:
+                future.result(timeout=timeout)
         except (TimeoutError, GoogleAPICallError, RetryError) as error:
             print("Error: Something went wrong when publishing batch: {error}".format(error=error))
 
