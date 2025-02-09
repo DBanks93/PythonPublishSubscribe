@@ -156,13 +156,13 @@ These can be called at any point within your application.
 | DEFAULT_TIMEOUT     |               |          |                                        | Default timeout for publishing - if not given will use Google's default value                       |
 | PUBLISH_TOPICS      |               |          | {topic_name: topic}                    | Topics to publish to                                                                                |
 | SUBSCRIPTION_TOPICS |               |          | {subscription_name: subscription_path} | Map of subscription names to path - so you can use the subscription name rather than the whole path |
-|                     |               |          |                                        |                                                                                                     |
-|                     |               |          |                                        |                                                                                                     |
-|                     |               |          |                                        |                                                                                                     |
-|                     |               |          |                                        |                                                                                                     |
+
 
 
 ## Full Example
+The full example can be seen in the [example directory](./examples).
+The example shows some of the approaches you can use, and is configured using a .env file.
+_Note: The example was created using google's pub/sub emulator, you may need to change .env file to get your example working_
 
 ## Useful Functions
 
