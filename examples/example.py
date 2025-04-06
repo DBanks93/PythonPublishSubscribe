@@ -1,4 +1,4 @@
-from python_publish_subscribe import PythonPublishSubscribe, test
+from python_publish_subscribe import PythonPublishSubscribe
 
 ### WON'T BE PART OF THE FRAMEWORK, ONLY DOING THIS FOR QUICK TESTING
 import os
@@ -8,14 +8,14 @@ os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
 ###############################
 app = PythonPublishSubscribe()
 
-app.publisher.create_topic('new_topic')
+app.create_topic('new_topic') # Will produce a warning if topic already exists
 app.publisher.publish('new_topic', "Hello")
 
 future = app.publisher.publish('new_topic', "Hello", asynchronous=True)
 # Doing other stuff
 future.result()
 
-app.publisher.publish_batch('new_topic', ["Wow", "multiple messages", "can be sent!"])
+results = app.publisher.publish_batch('new_topic', ["Wow", "multiple messages", "can be sent!"])
 
 @app.publish('new_topic')
 def send_hello(name):
@@ -25,20 +25,21 @@ send_hello("Swansea")
 
 
 ### Subscribing ###
+
+# Will produce a warning if subscription already exists
 app.create_subscription('new_subscription', 'new_topic')
 
 @app.subscribe("new_subscription")
 def hello(message):
-    print("hi")
     print(message.data)
 
-app.publisher.create_topic('new_topic2')
+app.create_topic('new_topic2') # Will produce a warning if topic already exists
 app.publisher.publish('new_topic2', "Hello2")
 # app.create_subscription('new_subscription2', 'new_topic2')
 
+# Will produce a warning if subscription already exists
 @app.subscribe("new_subscription2", topic_name="new_topic2")
 def hello2(message):
-    print("hi2")
     print(message.data)
 
 # app.subscriber.add_subscription("new_subscription", hello)

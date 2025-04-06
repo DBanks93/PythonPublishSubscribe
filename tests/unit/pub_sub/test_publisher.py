@@ -5,6 +5,7 @@ import pytest
 from google.api_core.exceptions import AlreadyExists, InvalidArgument
 from google.cloud.pubsub_v1.futures import Future
 
+from examples.example import future
 from python_publish_subscribe.src.Publisher import Publisher
 from python_publish_subscribe.src.Publisher import convert_data_to_string
 from python_publish_subscribe.config import Config
@@ -248,6 +249,22 @@ def test_publish_timeout_failure(app, mock_publisher_client, mock_get_topic, cap
     assert f"Error: Message Timed out while trying to send: Timed out" in capfd.readouterr().out, "Expected an error message"
     assert result is None, "Expected nothing to be returned"
 
+def test_error_when_publishing(app, mock_publisher_client, mock_get_topic, capfd):
+    # Given
+    topic_name = "test-topic"
+    data = "test-data"
+
+    mock_future = MagicMock(spec=Future)
+    mock_future.result.side_effect = Exception("Some Error")
+    mock_publisher_client.publish.return_value = mock_future
+
+    # When
+    result = app.publisher.publish(topic_name, data)
+
+    # Then
+    assert f"Error: Something when wrong: Some Error" in capfd.readouterr().out, "Expected an error message"
+    assert result is None, "Expected nothing to be returned"
+
 def test_publish_with_attributes(app, mock_publisher_client):
     # Given
     topic_name = "test-topic"
@@ -299,40 +316,41 @@ def test_publish_wrapper_success(app):
         ), "Expected publish function to be called with correct arguments"
 
 
+def test_publish_batch_success(app, mock_publisher_client, mock_get_topic):
+    # Given
+    topic_name = "test-topic"
+    data = [f"test data {i}" for i in range(10)]
+    mock_future = MagicMock(spec=Future)
+    mock_future.result.return_value = 'mocked_response'
 
-# def test_publish_batch_success(app, mock_publisher_client, mock_get_topic):
-#     # Given
-#     topic_name = "test-topic"
-#     data = [f"test data {i}" for i in range(10)]
-#     mock_future = MagicMock(spec=Future)
-#     mock_future.result.return_value = 'mocked_response'
-#
-#     with patch.object(app.publisher, 'publish', return_value=mock_future) as mock_publish:
-#
-#         # When
-#         futures = app.publisher.publish_batch(topic_name, data)
-#
-#         # Then
-#         assert len(futures) == len(data), "Expected all topics to be published"
-#
-#         for i in range(len(futures)):
-#             mock_publish.assert_any_call(topic_name, data[i]), "Expected the data to be published"
-#             assert futures[i].result() == 'mocked_response', "Expected the data to be published"
-#
-# def test_publish_batch_failure(app, mock_publisher_client, mock_get_topic, capfd):
-#     # Given
-#     topic_name = "test-topic"
-#     data = [f"test data {i}" for i in range(10)]
-#
-#     with patch.object(app.publisher, 'publish') as mock_publish:
-#         mock_publish.side_effect = TimeoutError("Timed out")
-#
-#         # When
-#         futures = app.publisher.publish_batch(topic_name, data)
-#
-#         # Then
-#         assert len(futures) == len(data), "Expected all topics to be published"
-#
-#         for i in range(len(futures)):
-#             mock_publish.assert_any_call(topic_name, data[i]), "Expected the data to be published"
-#             assert futures[i].result() == 'mocked_response', "Expected the data to be published"
+    with patch.object(app.publisher, 'publish') as mock_publish:
+        mock_publish.side_effect = [mock_future for _ in range(len(data))]
+        # When
+        futures = app.publisher.publish_batch(topic_name, data)
+
+        # Then
+        assert len(futures) == len(data), "Expected all topics to be published"
+
+        for i in range(len(data)):
+            mock_publish.assert_any_call(topic_name, data[i], None, None, None, "projects/project_name/topics/topic_name", True)
+            assert futures[i].result() == 'mocked_response', f"Expected future {i}"
+
+def test_publish_batch_failure(app, mock_publisher_client, mock_get_topic, capfd):
+    # Given
+    topic_name = "test-topic"
+    data = [f"test data {i}" for i in range(10)]
+    mock_future = MagicMock(spec=Future)
+    mock_future.result.side_effect = TimeoutError("Timed out")
+
+    with patch.object(app.publisher, 'publish') as mock_publish:
+        mock_publish.side_effect = [mock_future for _ in range(len(data))]
+
+        # When
+        futures = app.publisher.publish_batch(topic_name, data)
+
+        # Then
+        assert len(futures) == len(data), "Expected all topics to be published"
+        assert "Error: Something went wrong when publishing batch: Timed out" in capfd.readouterr().out, "Expect a warning message to be printed"
+
+        for i in range(len(futures)):
+            mock_publish.assert_any_call(topic_name, data[i], None, None, None, "projects/project_name/topics/topic_name", True)

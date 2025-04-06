@@ -18,6 +18,12 @@ def mock_publisher_client(app):
         yield mock_publisher_client
 
 @pytest.fixture
+def mock_subscriber_client(app):
+    with patch('google.cloud.pubsub_v1.SubscriberClient.subscribe') as mock_subscriber_client:
+        app.subscriber._subscriber = mock_subscriber_client
+        yield mock_subscriber_client
+
+@pytest.fixture
 def mock_get_topic(app):
     with patch.object(app.publisher, "get_topic") as mock_get_topic:
         app.publisher._get_topic = mock_get_topic

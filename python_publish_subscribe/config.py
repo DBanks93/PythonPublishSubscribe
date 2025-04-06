@@ -74,9 +74,10 @@ class Config:
         if isinstance(old_values, dict):
             old_values.update(value)
         elif isinstance(old_values, list):
-            old_values.append(value)
+            old_values = old_values + value
+            self._config[key] = old_values
         else:
-            raise ValueError()
+            raise ValueError("Value must be either a dict or a list")
 
 
     # TODO: add functionality to set config through env / local files

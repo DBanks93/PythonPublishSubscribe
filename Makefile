@@ -10,7 +10,7 @@ test: unit_test integration_test
 
 .PHONY: unit_test
 unit_test:
-	pipenv run pytest tests/unit
+	pipenv run pytest tests/unit --cov python_publish_subscribe --cov-report term-missing
 
 .PHONY: intergration_test
 integration_test: emulator_down emulator_up

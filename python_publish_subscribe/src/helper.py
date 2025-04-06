@@ -18,7 +18,7 @@ def is_subscription_subscription_path(subscription_name: str) -> bool:
     :param subscription_name: Subscription to check
     :return: if subscription is the whole subscription path
     """
-    return True if re.match(r"projects/[a-zA-Z0-9_-]+/subscriptions/[a-zA-Z0-9_-]+/", subscription_name) else False
+    return True if re.match(r"projects/[a-zA-Z0-9_-]+/subscriptions/[a-zA-Z0-9_-]+", subscription_name) else False
 
 def build_and_save_topic_string(topic_name: str, project_id: str, config: Config) -> (str, str):
     """

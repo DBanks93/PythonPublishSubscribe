@@ -1,26 +1,25 @@
 import asyncio
 import signal
 import typing
-from typing import Optional
+from typing import Optional, Dict, Callable, Set
 
 from google.cloud import pubsub_v1
 from google.api_core.exceptions import AlreadyExists
 from google.auth.api_key import Credentials
-from google.cloud.pubsub_v1.types import message
-from google.pubsub_v1 import Subscription
 from google.cloud.pubsub_v1.subscriber.message import Message
+from google.cloud.pubsub_v1.types import message
+from google.pubsub_v1 import Subscription, SubscriberClient
 
 from python_publish_subscribe.config import Config
-from python_publish_subscribe.src.Message import Message
 from python_publish_subscribe.src.helper import build_and_save_topic_string, is_subscription_subscription_path
 
 # TODO: Add support for credentials
-# TODO: Add ability for other pubsub types (ONE_TIME_DELIVERY etc etc) and any other config settings
+# TODO: Test ability for other pubsub types (ONE_TIME_DELIVERY etc etc) and any other config settings
 class Subscriber:
     def __init__(self, config: Config, credentials: Credentials=None):
-        self._subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
-        self._config = config
-        self._subscriptions = {}
+        self._subscriber: SubscriberClient = pubsub_v1.SubscriberClient(credentials=credentials)
+        self._config: Config = config
+        self._subscriptions: Dict[str, Dict[str, Callable] | Dict[str, bool]] = {}
         self._loop = asyncio.get_event_loop()
 
     def get_subscription_path(self, subscription_name: str) -> str:
@@ -37,15 +36,22 @@ class Subscriber:
             return subscription_paths.get(subscription_name)
         return self._subscriber.subscription_path(self._config.get('PROJECT_ID'), subscription_name)
 
-    def add_subscription(self, subscription_name: str, callback: typing.Callable) -> None:
+    def add_subscription(self, subscription_name: str, callback: typing.Callable, exactly_once_delivery: bool=False) -> None:
         """
         Adds a preconfigured subscription, and it's callback function to the configuration, such that
         when app.run() is called it can be subscribed too correctly.
 
         :param subscription_name: name of the subscription
         :param callback: callback function for the subscription when a message is received
+        :param exactly_once_delivery: if the subscription should use exactly once delivery
         """
-        self._subscriptions[subscription_name] = callback
+        self._subscriptions[subscription_name] = {
+            'callback': callback,
+            'exactly_once_delivery': exactly_once_delivery,
+        }
+
+        # self._subscriptions[subscription_name]["CALLBACK"] = callback
+        # self._subscriptions[subscription_name]["EXACTLY_ONCE"] = exactly_once_delivery
 
     def create_subscription(self, subscription_name, topic) -> Optional[Subscription]:
         """
@@ -65,7 +71,7 @@ class Subscriber:
             print("Warning: Subscription {subscription} already exists".format(subscription=subscription_name))
             return self._subscriber.get_subscription({"subscription": path})
         except Exception as error:
-            print("Error: Something when wrong when creating subscription {subscription}: {error}"
+            print("Error: Something went wrong when creating subscription {subscription}: {error}"
                   .format(subscription=path, error=error))
             return None
 
@@ -83,7 +89,7 @@ class Subscriber:
     def _handle_message(self, message, callback):
         callback(message)
 
-    async def _subscribe_to_subscription(self, subscription_name: str, handler: typing.Callable) -> None:
+    async def _subscribe_to_subscription(self, subscription_name: str, subscription_config: Dict[str, Callable] | Dict[str, bool]) -> None:
         """
         Subscribes to one subscription and calls handler.
         A new asynchronous task will be created to call the handler/callback function.
@@ -94,8 +100,17 @@ class Subscriber:
         subscription_path = self.get_subscription_path(subscription_name)
 
         def callback(message: Message):
+            if  subscription_config['exactly_once_delivery']:
+                ack_future = message.ack_with_response()
+                try:
+                    subscription_config['callback'](message)
+                    ack_future.ack()
+                except Exception:
+                    ack_future.nack()
+                return
             try:
-                handler(message)
+                subscription_config['callback'](message)
+                # handler(message)
                 message.ack()
             except Exception:
                 message.nack()
@@ -112,7 +127,7 @@ class Subscriber:
             print(f"Info: Subscription {subscription_name} stopped")
             streaming_pull_future.cancel()
         except Exception as error:
-            print(f"Error: Something went wrong when listening to {subscription_path}: {error}")
+            print(f"Error: Something went wrong when listening to {subscription_name}: {error}")
         finally:
             streaming_pull_future.cancel()
 
@@ -121,8 +136,7 @@ class Subscriber:
         Listens to all subscriptions that the subscriber currently has configured.
         Each subscription will be listened to in a new asyncio task.
         """
-        tasks = [self._subscribe_to_subscription(subscription, handler) for subscription, handler in self._subscriptions.items()]
-
+        tasks = [self._subscribe_to_subscription(subscription, subscription_config) for subscription, subscription_config in self._subscriptions.items()]
         await asyncio.gather(*tasks)
 
     # def subscribe(self, subscription_name, callback):
