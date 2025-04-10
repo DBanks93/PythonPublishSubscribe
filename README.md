@@ -161,14 +161,20 @@ You can simply create your own url, using the sqlalchemy docs on [generating url
 and pass it into the config as `DATABASE_URL`.
 Or if you wish, you can enter the following into the config and let the framework build the url for you:
 
-| Name              | Required   | Default Value used in [DatabaseHelper](#databasehelper) | Meaning |
-|-------------------|------------|---------------------------------------------------------|---------|
-| DATABASE_DIALECT  | ✅          | -                                                       |         |
-| DATABASE_NAME     |            | default_schema                                          |         |
-| DATABASE_USERNAME |            | appuser                                                 |         |
-| DATABASE_PASSWORD |            |                                                         |         |
-| DATABASE_HOST     |            | -                                                       |         |
-| DATABASE_PORT     |            | -                                                       |         |
+| Name              | Required* | Default Value used in [DatabaseHelper](#databasehelper) | Meaning                                           |
+|-------------------|-----------|---------------------------------------------------------|---------------------------------------------------|
+| DATABASE_DIALECT  | ✅         | -                                                       | Dialect/Driver to use to connect to the database  |
+| DATABASE_NAME     |           | default_schema                                          | Name of the Database to connect to                |
+| DATABASE_USERNAME |           | appuser                                                 | Username to login to the database                 |
+| DATABASE_PASSWORD |           |                                                         | Password to login to the database to (plain text) |
+| DATABASE_HOST     |           | -                                                       | Database Host                                     |
+| DATABASE_PORT     |           | -                                                       | Port to connect to the database                   |
+
+*PythonSubscribe Requires the config, depending on dialect 
+and other config values entered sqlalchemy may still require extra bits of config.
+
+_Note: you may not need all the db config values, but check your database configuration.
+Errors will be thrown if values are missing._
 
 
 To make it easier, there are some [supported Dialects](#supported-shortened-dialects),
