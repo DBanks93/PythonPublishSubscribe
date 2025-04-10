@@ -1,3 +1,5 @@
+import random
+
 from python_publish_subscribe import PythonPublishSubscribe
 
 ### WON'T BE PART OF THE FRAMEWORK, ONLY DOING THIS FOR QUICK TESTING
@@ -6,7 +8,7 @@ import os
 os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
 
 ###############################
-app = PythonPublishSubscribe()
+app = PythonPublishSubscribe(database_connectivity=True)
 
 app.create_topic('new_topic') # Will produce a warning if topic already exists
 app.publisher.publish('new_topic', "Hello")
@@ -45,26 +47,35 @@ def hello2(message):
 # app.subscriber.add_subscription("new_subscription", hello)
 
 
+### Database Handling ###
+from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
+from sqlalchemy.orm import Session, declarative_base
+
+from sqlalchemy import Column, Integer, String
+Base = declarative_base()
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False)
+
+# Using the engine created by the framework
+Base.metadata.create_all(DatabaseHelper.get_engine())
+
+app.create_topic('database_topic') # Will produce a warning if topic already exists
+
+# Getting the session passed through automatically.
+@app.subscribe("database_subscription2", topic_name="database_topic")
+def hello2(message, session: Session):
+    session.add(User(name=message.data))
+    print("Added user", message.data)
+    all_users = ", ".join(f"{user.id}:{user.name}" for user in session.query(User).all())
+    print(all_users)
+
+app.publisher.publish('database_topic', "User" + str(random.randint(1,100)))
+
+
+
 
 if __name__ == "__main__":
     app.run()
-
-# app.subscriber.subscribe('new_subscription', hello)
-
-# app.config.update('PUBLISH_TOPICS', TOPIC_NAME)
-
-# test()
-#
-# @app.test_decorators
-# def test_function():
-#     print("foo but with no bar :(")
-
-# @app.test_decorator_with_params("foo")
-# def test_param():
-#     print("bar")
-#
-# @app.test_map_function("hello_subscription")
-# def test_call_function():
-#     print("callback")
-#
-# test_param()

@@ -22,7 +22,14 @@ class Config:
             'PUBLISH_TOPICS': {},
             'SUBSCRIPTION_TOPICS': {},
             'DEFAULT_TIMEOUT': 10,
-            'PROJECT_ID': ''
+            'PROJECT_ID': '',
+            'DATABASE_URL': '',
+            'DATABASE_DIALECT': '',
+            'DATABASE_NAME': '',
+            'DATABASE_USERNAME': '',
+            'DATABASE_PASSWORD': '',
+            'DATABASE_PORT': '',
+            'DATABASE_HOST': '',
         }
 
         if default_config is None:
@@ -112,6 +119,13 @@ class Config:
         SUBSCRIPTION_TOPICS = 2
         PUBLISH_TOPICS = 3
         DEFAULT_TIMEOUT = 4
+        DATABASE_URL = 5
+        DATABASE_DIALECT = 6
+        DATABASE_NAME = 7
+        DATABASE_USERNAME = 8
+        DATABASE_PASSWORD = 9
+        DATABASE_HOST = 10
+        DATABASE_PORT = 11
 
 DEFAULT_CONFIG = {
    # Config.ConfigKeys.SUBSCRIPTION_TOPICS : {}

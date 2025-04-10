@@ -11,17 +11,21 @@ from google.pubsub_v1 import Subscription
 from python_publish_subscribe.config import Config
 from python_publish_subscribe.src.Publisher import Publisher
 from python_publish_subscribe.src.Subscriber import Subscriber
+from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
 
 class PythonPublishSubscribe:
     config: Config
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, database_connectivity: bool=False):
         self.config = config or {}
 
         self.initialise()
         self.test_func_map = {}
         self.publisher = Publisher(self.config)
         self.subscriber = Subscriber(self.config)
+
+        if database_connectivity:
+            DatabaseHelper.get_instance(self.config)
 
 
     def initialise(self):
@@ -34,6 +38,7 @@ class PythonPublishSubscribe:
                 return self.publisher.publish(topic_name, message, timeout, retry)
             return wrapper
         return decorator
+
 
     def create_topic(self, topic_name: str) -> bool:
         """

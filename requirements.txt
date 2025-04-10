@@ -6,3 +6,4 @@ packaging~=24.2
 zipp~=3.21.0
 python-dotenv~=1.0.1
 pytest-asyncio~=0.25.3
+SQLAlchemy~=2.0.40

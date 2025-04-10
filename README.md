@@ -14,6 +14,10 @@ such as RabbitMQ, Redis and AWS' Pub/Sub.
 - [Subscribing](#subscribing)
   - [Configuring Callbacks and subscriptions](#configuring-callbacks-and-subscriptions)
   - [Listening for messages](#start-listening-to-subscriptions)
+- [Database Connectivity](#database-connectivity)
+  - [Connecting to a database](#connecting-to-a-database)
+  - [Useful info on creating ORMs](#creating-orms)
+  - [Info about the provided DatabaseHelper](#databasehelper)
 - [Configuration](#pythonpublishsubscribe-config)
 - [Useful functions](#useful-functions)
 
@@ -137,6 +141,100 @@ Each subscription is listened to asynchronously,
 but something to note is that currently, if your callback function is intensive,
 it could block other subscriptions on that topic until it's complete.
 
+## Database Connectivity
+PythonPublishSubscribe uses sqlalchemy as a way to connect to database.
+To enable database connectivity, you must set `database_connectivity` to true when initialising the framework.
+```python
+app = PythonPublishSubscribe(database_connectivity=True)
+```
+
+The database support is handled via [sqlalchemy](https://www.sqlalchemy.org),
+the PythonPublishSubscribe framework will automatically on initialisation connect to the database and set up an engine.
+[Sessions](#sessions) are then created and passed through to callback functions when a message is received.
+
+### Connecting to a database
+If you've enabled database connectivity when the framework is initialised,
+it will automatically attempt to connect to it using [sqlalchemy's database engine](https://docs.sqlalchemy.org/en/20/core/engines.html).
+In order to connect to a database a URL is needed. 
+
+You can simply create your own url, using the sqlalchemy docs on [generating urls](https://docs.sqlalchemy.org/en/20/core/engines.html#mysql),
+and pass it into the config as `DATABASE_URL`.
+Or if you wish, you can enter the following into the config and let the framework build the url for you:
+
+| Name              | Required   | Default Value used in [DatabaseHelper](#databasehelper) | Meaning |
+|-------------------|------------|---------------------------------------------------------|---------|
+| DATABASE_DIALECT  | ✅          | -                                                       |         |
+| DATABASE_NAME     |            | default_schema                                          |         |
+| DATABASE_USERNAME |            | appuser                                                 |         |
+| DATABASE_PASSWORD |            |                                                         |         |
+| DATABASE_HOST     |            | -                                                       |         |
+| DATABASE_PORT     |            | -                                                       |         |
+
+
+To make it easier, there are some [supported Dialects](#supported-shortened-dialects),
+meaning you don't have enter the whole driver name.
+If the shortened driver name is not available you can simply pass through the whole driver i.e.
+```yaml
+DATABASE_DIALECT='psycopg2'
+# Yields the same results as...
+DATABASE_DIALECT='postgresql+psycopg2'
+```
+You MUST make sure that you have the driver installed or else your program will throw an error.
+For a full list of all dialicts supported see [the sqlalchemy docs](https://docs.sqlalchemy.org/en/20/dialects/index.html).
+
+Once the url has be generated or gathered, this url is passed to sqlalchemy which will then connect to the database
+using an engine, and you'll be good to go.
+All of this happens when you initialise the framework.
+#### Supported shortened dialects
+| Supported DATABASE_DIALECT | Full driver         |
+|----------------------------|---------------------|
+| postgresql                 | postgresql          |
+| psycopg2                   | postgresql+psycopg2 |
+| pg8000                     | postgresql+pg8000   |
+| mysql                      | mysql               |
+| pymysql                    | mysql+pymysq        |
+
+
+### Creating ORMs
+
+### Sessions
+[SQLAlchemy Sessions](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) are provided by the framework and are automatically commited/rollback and closed after calling a given callback function.
+In order to use the session, the signature of your callback sessions has to be changed slightly to accept a `Session` 
+as well as the message:
+```python
+@app.subscribe("database_subscription")
+def function(message, session: Session):
+    ...
+```
+If the callback function raises an error or returns `False` then the session will automatically rolled back 
+(simular to how message negatively acknowledgment works), 
+otherwise it always commits the session.
+
+If you wish to create a session you can simply call,
+```python
+from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
+
+session: Session = DatabaseHelper().create_session()
+```
+This will create a sqlalchemy session based on the engine generated upon the initialisation.
+
+### DatabaseHelper
+The `DatabaseHelper` is a singleton class that contains helpful functions that can be used to interact with a given database.
+It's created upon initialisation if the framework if `database_conecitivy` is enabled 
+and stores all the needed SQLAlchemy objects needed to connect to a database.
+
+You can use the helper to get objects that maybe useful such as the Engine, Sessions....
+
+you can access the helper like so
+```python
+from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
+
+DatabaseHelper()
+
+# or for example
+DatabaseHelper().get_engine()
+```
+
 ## PythonPublishSubscribe Config
 Config is handled by the `Config` class.
 This can be accessed through the config attribute in PythonPublishSubscribe.
@@ -148,14 +246,20 @@ Configuration is saved in a dictionary meaning you can access and set data
 though calling the following methods: `config.update`, `config.set`, `config.get` and `config.add_value_to_key`.
 These can be called at any point within your application.
 
-### Config Attributes
-
-| Name                | Default Value | Required | Format                                 | Meaning                                                                                             |
-|---------------------|---------------|----------|----------------------------------------|-----------------------------------------------------------------------------------------------------|
-| PROJECT_ID          |               | ✅        | 'project'                              | GCP Project to link to                                                                              |
-| DEFAULT_TIMEOUT     |               |          |                                        | Default timeout for publishing - if not given will use Google's default value                       |
-| PUBLISH_TOPICS      |               |          | {topic_name: topic}                    | Topics to publish to                                                                                |
-| SUBSCRIPTION_TOPICS |               |          | {subscription_name: subscription_path} | Map of subscription names to path - so you can use the subscription name rather than the whole path |
+### Config Attributes 
+| Name                | Default Value | Required | Format                                     | Meaning                                                                                             |
+|---------------------|---------------|----------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| PROJECT_ID          |               | ✅        | 'project'                                  | GCP Project to link to                                                                              |
+| DEFAULT_TIMEOUT     |               |          |                                            | Default timeout for publishing - if not given will use Google's default value                       |
+| PUBLISH_TOPICS      |               |          | {topic_name: topic}                        | Topics to publish to                                                                                |
+| SUBSCRIPTION_TOPICS |               |          | {subscription_name: subscription_path}     | Map of subscription names to path - so you can use the subscription name rather than the whole path |
+| DATABASE_URL        |               |          |                                            |                                                                                                     |
+| DATABASE_DIALECT    |               |          | [More Info](#supported-shortened-dialects) |                                                                                                     |
+| DATABASE_NAME       |               |          |                                            |                                                                                                     |
+| DATABASE_USERNAME   |               |          |                                            |                                                                                                     |
+| DATABASE_PASSWORD   |               |          |                                            |                                                                                                     |
+| DATABASE_HOST       |               |          |                                            |                                                                                                     |
+| DATABASE_PORT       |               |          |                                            |                                                                                                     |
 
 
 

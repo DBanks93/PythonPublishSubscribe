@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import signal
 import typing
 from typing import Optional, Dict, Callable, Set
@@ -12,6 +13,25 @@ from google.pubsub_v1 import Subscription, SubscriberClient
 
 from python_publish_subscribe.config import Config
 from python_publish_subscribe.src.helper import build_and_save_topic_string, is_subscription_subscription_path
+from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
+
+
+# TODO: Functionality changed need to check this
+def _handle_message(message, callback):
+    # Checking if the callback function wants a session and the database is set up
+    if DatabaseHelper.is_setup() and 'session' in inspect.signature(callback).parameters :
+        local_session = DatabaseHelper.create_session()
+        try:
+            callback(message, local_session)
+            local_session.commit()
+        except Exception:
+            local_session.rollback()
+            raise
+        finally:
+            local_session.close()
+    else:
+        callback(message)
+
 
 # TODO: Add support for credentials
 # TODO: Test ability for other pubsub types (ONE_TIME_DELIVERY etc etc) and any other config settings
@@ -86,8 +106,6 @@ class Subscriber:
         except KeyboardInterrupt:
             print("Info: Interrupted, stopping listening to subscriptions")
 
-    def _handle_message(self, message, callback):
-        callback(message)
 
     async def _subscribe_to_subscription(self, subscription_name: str, subscription_config: Dict[str, Callable] | Dict[str, bool]) -> None:
         """
@@ -103,13 +121,15 @@ class Subscriber:
             if  subscription_config['exactly_once_delivery']:
                 ack_future = message.ack_with_response()
                 try:
-                    subscription_config['callback'](message)
+                    # subscription_config['callback'](message)
+                    _handle_message(message, subscription_config['callback'])
                     ack_future.ack()
                 except Exception:
                     ack_future.nack()
                 return
             try:
-                subscription_config['callback'](message)
+                # subscription_config['callback'](message)
+                _handle_message(message, subscription_config['callback'])
                 # handler(message)
                 message.ack()
             except Exception:
