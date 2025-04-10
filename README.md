@@ -278,7 +278,7 @@ there are two main ways.
 | Name                | Default Value  | Required | Format                                     | Meaning                                                                                             |
 |---------------------|----------------|----------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | PROJECT_ID          |                | ✅        | 'project'                                  | GCP Project to link to                                                                              |
-| DEFAULT_TIMEOUT     |                |          |                                            | Default timeout for publishing - if not given will use Google's default value                       |
+| DEFAULT_TIMEOUT     | 10             |          |                                            | Default timeout for publishing - if not given will use Google's default value                       |
 | PUBLISH_TOPICS      |                |          | {topic_name: topic}                        | Topics to publish to                                                                                |
 | SUBSCRIPTION_TOPICS |                |          | {subscription_name: subscription_path}     | Map of subscription names to path - so you can use the subscription name rather than the whole path |
 | DATABASE_URL        |                |          | [More Info](#connecting-to-a-database)     | Full URL of the database to connect to                                                              ||
