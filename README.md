@@ -275,19 +275,19 @@ there are two main ways.
 2. Passing a dict in when creating a PythonPublishSubscribe instance.
 
 ### Config Attributes 
-| Name                | Default Value | Required | Format                                     | Meaning                                                                                             |
-|---------------------|---------------|----------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| PROJECT_ID          |               | ✅        | 'project'                                  | GCP Project to link to                                                                              |
-| DEFAULT_TIMEOUT     |               |          |                                            | Default timeout for publishing - if not given will use Google's default value                       |
-| PUBLISH_TOPICS      |               |          | {topic_name: topic}                        | Topics to publish to                                                                                |
-| SUBSCRIPTION_TOPICS |               |          | {subscription_name: subscription_path}     | Map of subscription names to path - so you can use the subscription name rather than the whole path |
-| DATABASE_URL        |               |          | [More Info](#connecting-to-a-database)     | Full URL of the database to connect to                                                              ||
-| DATABASE_DIALECT    |               |          | [More Info](#supported-shortened-dialects) | Dialect/Driver to use to connect to the database                                                    |
-| DATABASE_NAME       |               |          | [More Info](#connecting-to-a-database)     | Name of the Database to connect to                                                                  |
-| DATABASE_USERNAME   |               |          | [More Info](#connecting-to-a-database)     | Username to login to the database                                                                   |
-| DATABASE_PASSWORD   |               |          | [More Info](#connecting-to-a-database)     | Password to login to the database to (plain text)                                                   |
-| DATABASE_HOST       |               |          | [More Info](#connecting-to-a-database)     | Database Host                                                                                       |
-| DATABASE_PORT       |               |          | [More Info](#connecting-to-a-database)     | Port to connect to the database                                                                     |
+| Name                | Default Value  | Required | Format                                     | Meaning                                                                                             |
+|---------------------|----------------|----------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| PROJECT_ID          |                | ✅        | 'project'                                  | GCP Project to link to                                                                              |
+| DEFAULT_TIMEOUT     |                |          |                                            | Default timeout for publishing - if not given will use Google's default value                       |
+| PUBLISH_TOPICS      |                |          | {topic_name: topic}                        | Topics to publish to                                                                                |
+| SUBSCRIPTION_TOPICS |                |          | {subscription_name: subscription_path}     | Map of subscription names to path - so you can use the subscription name rather than the whole path |
+| DATABASE_URL        |                |          | [More Info](#connecting-to-a-database)     | Full URL of the database to connect to                                                              ||
+| DATABASE_DIALECT    |                |          | [More Info](#supported-shortened-dialects) | Dialect/Driver to use to connect to the database                                                    |
+| DATABASE_NAME       | default_schema |          | [More Info](#connecting-to-a-database)     | Name of the Database to connect to                                                                  |
+| DATABASE_USERNAME   | appuser        |          | [More Info](#connecting-to-a-database)     | Username to login to the database                                                                   |
+| DATABASE_PASSWORD   |                |          | [More Info](#connecting-to-a-database)     | Password to login to the database to (plain text)                                                   |
+| DATABASE_HOST       |                |          | [More Info](#connecting-to-a-database)     | Database Host                                                                                       |
+| DATABASE_PORT       |                |          | [More Info](#connecting-to-a-database)     | Port to connect to the database                                                                     |
 
 
 
