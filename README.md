@@ -25,6 +25,8 @@ such as RabbitMQ, Redis and AWS' Pub/Sub.
 In order to use the framework you must create an instance of `PythonPublishSubscribe`.
 ```python
 app = PythonPublishSubscribe()
+
+app = PythonPublishSubscribe(database_connectivity=True)
 ```
 
 Your GCP project MUST be specified somewhere other wise the framework won't know where to publish/subscribe!
@@ -203,6 +205,19 @@ All of this happens when you initialise the framework.
 
 ### Creating ORMs
 
+```python
+Base = declarative_base()
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False)
+
+# can be simplified to be...
+class User(BaseModel, tablename="users"):
+    name = Column(String(80), nullable=False)
+```
+
 ### Sessions
 [SQLAlchemy Sessions](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) are provided by the framework and are automatically commited/rollback and closed after calling a given callback function.
 In order to use the session, the signature of your callback sessions has to be changed slightly to accept a `Session` 
@@ -252,6 +267,13 @@ Configuration is saved in a dictionary meaning you can access and set data
 though calling the following methods: `config.update`, `config.set`, `config.get` and `config.add_value_to_key`.
 These can be called at any point within your application.
 
+### Passing in values
+In order to pass through values to the config class upon the frameworks initialisation,
+there are two main ways.
+
+1. Using a .env file
+2. Passing a dict in when creating a PythonPublishSubscribe instance.
+
 ### Config Attributes 
 | Name                | Default Value | Required | Format                                     | Meaning                                                                                             |
 |---------------------|---------------|----------|--------------------------------------------|-----------------------------------------------------------------------------------------------------|
@@ -259,13 +281,13 @@ These can be called at any point within your application.
 | DEFAULT_TIMEOUT     |               |          |                                            | Default timeout for publishing - if not given will use Google's default value                       |
 | PUBLISH_TOPICS      |               |          | {topic_name: topic}                        | Topics to publish to                                                                                |
 | SUBSCRIPTION_TOPICS |               |          | {subscription_name: subscription_path}     | Map of subscription names to path - so you can use the subscription name rather than the whole path |
-| DATABASE_URL        |               |          |                                            |                                                                                                     |
-| DATABASE_DIALECT    |               |          | [More Info](#supported-shortened-dialects) |                                                                                                     |
-| DATABASE_NAME       |               |          |                                            |                                                                                                     |
-| DATABASE_USERNAME   |               |          |                                            |                                                                                                     |
-| DATABASE_PASSWORD   |               |          |                                            |                                                                                                     |
-| DATABASE_HOST       |               |          |                                            |                                                                                                     |
-| DATABASE_PORT       |               |          |                                            |                                                                                                     |
+| DATABASE_URL        |               |          | [More Info](#connecting-to-a-database)     | Full URL of the database to connect to                                                              ||
+| DATABASE_DIALECT    |               |          | [More Info](#supported-shortened-dialects) | Dialect/Driver to use to connect to the database                                                    |
+| DATABASE_NAME       |               |          | [More Info](#connecting-to-a-database)     | Name of the Database to connect to                                                                  |
+| DATABASE_USERNAME   |               |          | [More Info](#connecting-to-a-database)     | Username to login to the database                                                                   |
+| DATABASE_PASSWORD   |               |          | [More Info](#connecting-to-a-database)     | Password to login to the database to (plain text)                                                   |
+| DATABASE_HOST       |               |          | [More Info](#connecting-to-a-database)     | Database Host                                                                                       |
+| DATABASE_PORT       |               |          | [More Info](#connecting-to-a-database)     | Port to connect to the database                                                                     |
 
 
 

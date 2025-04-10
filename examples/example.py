@@ -49,31 +49,33 @@ def hello2(message):
 
 ### Database Handling ###
 from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
-from sqlalchemy.orm import Session, declarative_base
+from sqlalchemy.orm import Session
+from sqlalchemy import Column, String
 
-from sqlalchemy import Column, Integer, String
-Base = declarative_base()
-class User(Base):
-    __tablename__ = 'users'
+from python_publish_subscribe.src.db.ORMUtility import orm_model, get_base
+from python_publish_subscribe.src.db.BaseModel import BaseModel
 
-    id = Column(Integer, primary_key=True)
+
+# Creating a User model using the Base Model
+class User(BaseModel, tablename="users"):
     name = Column(String(80), nullable=False)
 
+
 # Using the engine created by the framework
-Base.metadata.create_all(DatabaseHelper.get_engine())
+DatabaseHelper.drop_all()
+DatabaseHelper.create_all()
 
 app.create_topic('database_topic') # Will produce a warning if topic already exists
 
 # Getting the session passed through automatically.
 @app.subscribe("database_subscription2", topic_name="database_topic")
-def hello2(message, session: Session):
+def database_call(message, session: Session):
     session.add(User(name=message.data))
     print("Added user", message.data)
     all_users = ", ".join(f"{user.id}:{user.name}" for user in session.query(User).all())
     print(all_users)
 
 app.publisher.publish('database_topic', "User" + str(random.randint(1,100)))
-
 
 
 

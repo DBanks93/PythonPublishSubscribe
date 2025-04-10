@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import engine
 from sqlalchemy import URL
 
+from python_publish_subscribe.src.db.ORMUtility import get_base
+
 # Map of all the dialect names to respective start of url for sqlalchemy
 DATABASE_DIALECTS = {
     'postgresql': 'postgresql',
@@ -138,3 +140,15 @@ class DatabaseHelper:
         """
         instance = cls.get_instance()
         return instance._ENGINE
+
+
+    @classmethod
+    def drop_all(cls):
+        instance = cls.get_instance()
+        get_base().metadata.drop_all(instance.get_engine())
+
+
+    @classmethod
+    def create_all(cls):
+        instance = cls.get_instance()
+        get_base().metadata.create_all(instance.get_engine())
