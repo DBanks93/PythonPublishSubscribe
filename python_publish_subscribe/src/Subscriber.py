@@ -22,7 +22,8 @@ def _handle_message(message, callback):
     if DatabaseHelper.is_setup() and 'session' in inspect.signature(callback).parameters :
         local_session = DatabaseHelper.create_session()
         try:
-            callback(message, local_session)
+            if callback(message, local_session) is False:
+                raise ValueError("Callback returned False")
             local_session.commit()
         except Exception:
             local_session.rollback()
