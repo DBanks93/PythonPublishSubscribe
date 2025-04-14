@@ -204,7 +204,19 @@ All of this happens when you initialise the framework.
 
 
 ### Creating ORMs
+#### Base Model
+To try and simplify creating Models, included in the framework is a Base Model with common functionality.
+It can be found and imported from python_publish_subscribe.src.db.BaseModel.
+The base model contains the following attributes
+- `id = Column(Integer, primary_key=True)`
+- `created_at = Column(DateTime, default=func.now())`
+- `updated_at = Column(DateTime, default=func.now(), onupdate=func.now())`
 
+As well as the following methods:
+- `save(self, session: Session) -> None`
+- `def delete(self, session: Session) -> None:`
+
+This means you can create a model as such:
 ```python
 Base = declarative_base()
 class User(Base):
@@ -217,6 +229,41 @@ class User(Base):
 class User(BaseModel, tablename="users"):
     name = Column(String(80), nullable=False)
 ```
+
+There are other helper functions you can use to create ORMs
+####  Generate models based on a schema
+It's possible to generate a model based on a given schema. 
+The framework will create a class with the schema being the attributes, then will register the model with sqlalchemy.
+
+Example
+```python
+from sqlalchemy import String
+from python_publish_subscribe.src.db.ORMUtility import create_and_register_model
+
+# Example usage:
+User = create_and_register_model(
+    'User', 
+    'users', 
+    {
+        'name': (String(80), {'nullable': False}),
+        'email': (String(120), {'unique': True, 'nullable': False}),
+    }
+)
+```
+
+#### Automap
+If you already have an existing database schema, SQLAlchemy’s `automap` feature can reflect the database and generate model classes automatically.
+The framework will handel all of this for you if you create an instance of `automap`.
+```python
+from python_publish_subscribe.src.db.automap import AutomapManager
+
+User = AutomapManager().get_automap_classes().user
+```
+The `AutomapManager` class is a singleton and will only run SQLAlchemy’s `automap` feature if you call `AutomapManager`,
+and will be only run the first time it's called.
+
+Something to note is that there is no error handling. This is on you to do for now.
+For example if in the example above, if user table does not exist, then an error will be thrown.
 
 ### Sessions
 [SQLAlchemy Sessions](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) are provided by the framework and are automatically commited/rollback and closed after calling a given callback function.
@@ -244,7 +291,7 @@ The `DatabaseHelper` is a singleton class that contains helpful functions that c
 It's created upon initialisation if the framework if `database_conecitivy` is enabled 
 and stores all the needed SQLAlchemy objects needed to connect to a database.
 
-You can use the helper to get objects that maybe useful such as the Engine, Sessions....
+You can use the helper to get objects that maybe useful such as the Engine and Sessions.
 
 you can access the helper like so
 ```python

@@ -18,7 +18,7 @@ class Config:
 
         :param default_config: Any default configuration for when the app starts
         """
-        self._config = {
+        self._config: Dict[str, Any] = {
             'PUBLISH_TOPICS': {},
             'SUBSCRIPTION_TOPICS': {},
             'DEFAULT_TIMEOUT': 10,

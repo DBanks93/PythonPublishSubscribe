@@ -64,7 +64,7 @@ def register_model(model: Type[ModelType]) -> Type[ModelType]:
     return model
 
 
-def create_and_register_model(    name: str,
+def create_and_register_model(name: str,
     tablename: str,
     fields: Dict[str, Tuple[Any, Dict[str, Any]]]
 ) -> Type[ModelType]:
