@@ -144,7 +144,7 @@ but something to note is that currently, if your callback function is intensive,
 it could block other subscriptions on that topic until it's complete.
 
 ## Database Connectivity
-PythonPublishSubscribe uses sqlalchemy as a way to connect to database.
+PythonPublishSubscribe uses SQLAlchemy as a way to connect to database.
 To enable database connectivity, you must set `database_connectivity` to true when initialising the framework.
 ```python
 app = PythonPublishSubscribe(database_connectivity=True)
@@ -159,7 +159,7 @@ If you've enabled database connectivity when the framework is initialised,
 it will automatically attempt to connect to it using [sqlalchemy's database engine](https://docs.sqlalchemy.org/en/20/core/engines.html).
 In order to connect to a database a URL is needed. 
 
-You can simply create your own url, using the sqlalchemy docs on [generating urls](https://docs.sqlalchemy.org/en/20/core/engines.html#mysql),
+You can simply create your own url, using the SQLAlchemy docs on [generating urls](https://docs.sqlalchemy.org/en/20/core/engines.html#mysql),
 and pass it into the config as `DATABASE_URL`.
 Or if you wish, you can enter the following into the config and let the framework build the url for you:
 
@@ -173,7 +173,7 @@ Or if you wish, you can enter the following into the config and let the framewor
 | DATABASE_PORT     |           | -                                                       | Port to connect to the database                   |
 
 *PythonSubscribe Requires the config, depending on dialect 
-and other config values entered sqlalchemy may still require extra bits of config.
+and other config values entered SQLAlchemy may still require extra bits of config.
 
 _Note: you may not need all the db config values, but check your database configuration.
 Errors will be thrown if values are missing._
@@ -190,7 +190,7 @@ DATABASE_DIALECT='postgresql+psycopg2'
 You MUST make sure that you have the driver installed or else your program will throw an error.
 For a full list of all dialicts supported see [the sqlalchemy docs](https://docs.sqlalchemy.org/en/20/dialects/index.html).
 
-Once the url has be generated or gathered, this url is passed to sqlalchemy which will then connect to the database
+Once the url has be generated or gathered, this url is passed to SQLAlchemy which will then connect to the database
 using an engine, and you'll be good to go.
 All of this happens when you initialise the framework.
 #### Supported shortened dialects
@@ -204,6 +204,12 @@ All of this happens when you initialise the framework.
 
 
 ### Creating ORMs
+One of the main things you need to create a Model is an SQLAlchemy `Base`. To get it you can call
+```python
+from python_publish_subscribe.src.db.ORMUtility import get_base
+
+Base = get_base()
+```
 #### Base Model
 To try and simplify creating Models, included in the framework is a Base Model with common functionality.
 It can be found and imported from python_publish_subscribe.src.db.BaseModel.
@@ -233,14 +239,13 @@ class User(BaseModel, tablename="users"):
 There are other helper functions you can use to create ORMs
 ####  Generate models based on a schema
 It's possible to generate a model based on a given schema. 
-The framework will create a class with the schema being the attributes, then will register the model with sqlalchemy.
+The framework will create a class with the schema being the attributes, then will register the model with SQLAlchemy.
 
 Example
 ```python
 from sqlalchemy import String
 from python_publish_subscribe.src.db.ORMUtility import create_and_register_model
 
-# Example usage:
 User = create_and_register_model(
     'User', 
     'users', 
@@ -284,7 +289,7 @@ from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
 
 session: Session = DatabaseHelper().create_session()
 ```
-This will create a sqlalchemy session based on the engine generated upon the initialisation.
+This will create a SQLAlchemy session based on the engine generated upon the initialisation.
 
 ### DatabaseHelper
 The `DatabaseHelper` is a singleton class that contains helpful functions that can be used to interact with a given database.
