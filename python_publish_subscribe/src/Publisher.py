@@ -1,5 +1,5 @@
 import json
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Tuple
 
 from google.api_core.retry import Retry
 from google.cloud import pubsub_v1
@@ -105,7 +105,6 @@ class Publisher:
         return topic, topic_name
 
 
-    # TODO: Make message any type
     def publish(
             self,
             topic_name: str,
@@ -157,7 +156,7 @@ class Publisher:
         else:
             return published
 
-    # TODO: revisit
+
     def publish_batch(
             self,
             topic_name,
@@ -165,7 +164,7 @@ class Publisher:
             attributes: Optional[Dict]=None,
             timeout: int=None,
             retry: Retry=None
-    ) -> List[Future]:
+    ) -> list[tuple[Any, str | None, Exception | None]]:
         """
         Publishes a list of messages to a topic.
 
@@ -174,21 +173,25 @@ class Publisher:
         :param attributes: Optional custom attributes to add to the message (optional)
         :param timeout: Timeout for the request (optional)
         :param retry: What retry approach to take if a retry fails (optional)
-        :return: List of Futures of each message
+        :return: List of results of each message
         """
 
         topic, topic_name = self.get_topic(topic_name)
-        futures = []
 
-        for message in messages:
-            future = self.publish(topic_name, message, attributes, timeout, retry, topic, True)
-            futures.append(future)
+        timeout = timeout or self._timout
 
-        try:
-            timeout = timeout or self._timout
-            for future in futures:
-                future.result(timeout=timeout)
-        except (TimeoutError, GoogleAPICallError, RetryError) as error:
-            print("Error: Something went wrong when publishing batch: {error}".format(error=error))
+        paired_futures: List[Tuple[Any, Future]] = [
+            (message, self.publish(topic_name, message, attributes, timeout, retry, topic, True))
+            for message in messages
+        ]
 
-        return futures
+        results: List[Tuple[Any, Optional[str], Optional[Exception]]] = []
+        for message, future in paired_futures:
+            try:
+                message_id = future.result(timeout=timeout)
+                results.append((message, message_id, None))
+            except Exception as error:
+                results.append((message, None, error))
+                print("Error: Something went wrong when publishing a message in a batch: {error}".format(error=error))
+
+        return results
