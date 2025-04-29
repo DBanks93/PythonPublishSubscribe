@@ -2,8 +2,9 @@ import sqlalchemy
 
 from python_publish_subscribe.config import Config
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy import engine
+from sqlalchemy import engine, create_engine, Connection
 from sqlalchemy import URL
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncConnection
 
 from python_publish_subscribe.src.db.ORMUtility import get_base
 
@@ -11,6 +12,7 @@ from python_publish_subscribe.src.db.ORMUtility import get_base
 DATABASE_DIALECTS = {
     'postgresql': 'postgresql',
     'psycopg2': 'postgresql+psycopg2',
+    'asyncpg': 'postgresql+asyncpg',
     'pg8000': 'postgresql+pg8000',
     'mysql': 'mysql',
     'pymysql': 'mysql+pymysql',
@@ -51,12 +53,28 @@ def generate_database_url(dialect: str, username: str, password: str, port: str 
         host=host if host != '' else None,
     )
 
+
+def create_engine_from_url(url: URL):
+    """
+    Creates an engine from a database url.
+
+    If the driver is an async driver it creates an async engine.
+    :param url: URL of the database.
+    :return: sync/async engine and if it's async.
+    """
+    if "asyncpg" in url.drivername or "aiomysql" in url.drivername:
+        return create_async_engine(url), True
+    else:
+        return create_engine(url), False
+
 class DatabaseHelper:
     _instance = None
     _ENGINE: engine
-    _CONN: engine.Connection
+    _CONN: AsyncConnection | Connection
     _session_maker: sessionmaker
+    _async_session_maker: sessionmaker
     _setup: bool = False
+    _async: bool = False
 
 
     def __new__(cls, *args, **kwargs):
@@ -79,12 +97,16 @@ class DatabaseHelper:
                 host=config.get(Config.ConfigKeys.DATABASE_HOST.name),
             )
 
-        # Not catching any errors here as the framework SHOULD exit 1 if something goes wrong here
-        self._ENGINE = sqlalchemy.create_engine(
-            database_url)
-        self._CONN = self._ENGINE.connect()
-
-        if self._ENGINE is not None and self._CONN is not None:
+        self._ENGINE, self._async = create_engine_from_url(database_url)
+        if self._ENGINE is not None:
+            if self._async:
+                self._async_session_maker = sessionmaker(
+                    bind=self._ENGINE,
+                    class_=AsyncSession,
+                    expire_on_commit=False
+                )
+            else:
+                self._CONN = self._ENGINE.connect()
             self._session_maker = sessionmaker(bind=self._ENGINE)
             self._setup = True
 
@@ -119,6 +141,19 @@ class DatabaseHelper:
             return None
         return instance._session_maker()
 
+    @classmethod
+    def create_async_session(cls) -> AsyncSession | None:
+        """
+        Creates an async sqlalchemy session
+
+        :return: The created session
+        """
+        instance = cls.get_instance()
+        if instance._async_session_maker is None:
+            print("Warning: Database engine has not been configured for async")
+            return None
+        return instance._async_session_maker()
+
 
     @classmethod
     def is_setup(cls) -> bool:
@@ -145,10 +180,36 @@ class DatabaseHelper:
     @classmethod
     def drop_all(cls):
         instance = cls.get_instance()
+
+        # if instance.is_async():
+        #     raise RuntimeError("The async function must be called instead")
         get_base().metadata.drop_all(instance.get_engine())
+
+    @classmethod
+    async def drop_all_async(cls):
+        instance = cls.get_instance()
+
+        if cls.is_async():
+            async with instance._ENGINE as conn:
+                await conn.run_sync(get_base().metadata.drop_all)
 
 
     @classmethod
     def create_all(cls):
         instance = cls.get_instance()
         get_base().metadata.create_all(instance.get_engine())
+
+
+    @classmethod
+    async def create_all_async(cls):
+        instance = cls.get_instance()
+
+        if cls.is_async():
+            async with instance._ENGINE as conn:
+                await conn.run_sync(get_base().metadata.create_all)
+
+
+    @classmethod
+    def is_async(cls) -> bool:
+        instance = cls.get_instance()
+        return instance._async

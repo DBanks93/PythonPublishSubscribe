@@ -2,7 +2,9 @@ import asyncio
 import inspect
 import signal
 import typing
+from asyncio import AbstractEventLoop
 from typing import Optional, Dict, Callable, Set
+from concurrent.futures import ThreadPoolExecutor
 
 from google.cloud import pubsub_v1
 from google.api_core.exceptions import AlreadyExists
@@ -13,25 +15,54 @@ from google.pubsub_v1 import Subscription, SubscriberClient
 
 from python_publish_subscribe.config import Config
 from python_publish_subscribe.src.helper import build_and_save_topic_string, is_subscription_subscription_path
-from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
+from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper, create_engine_from_url
 
+_SYNC_EXECUTOR = ThreadPoolExecutor()
 
 # TODO: Functionality changed need to check this
-def _handle_message(message, callback):
-    # Checking if the callback function wants a session and the database is set up
-    if DatabaseHelper.is_setup() and 'session' in inspect.signature(callback).parameters :
-        local_session = DatabaseHelper.create_session()
-        try:
-            if callback(message, local_session) is False:
-                raise ValueError("Callback returned False")
-            local_session.commit()
-        except Exception:
-            local_session.rollback()
-            raise
-        finally:
-            local_session.close()
+async def _handle_message(message, callback):
+    wants_session = 'session' in inspect.signature(callback).parameters
+
+    if inspect.iscoroutinefunction(callback):
+        if wants_session and DatabaseHelper.is_setup():
+            if DatabaseHelper.is_async():
+                async with DatabaseHelper.create_async_session() as session:
+                    try:
+                        result = await callback(message, session)
+                        if result is False:
+                            raise ValueError("Callback returned False")
+                        await session.commit()
+                    except Exception:
+                        await session.rollback()
+                        raise
+            else:
+                print("Error: Async callback provided but using a synchronous database engine.")
+                raise RuntimeError(
+                    "Async callback provided but using a synchronous database engine "
+                    "Either make the callback synchronous or configure an async database engine."
+                )
+        else:
+            await callback(message)
+
     else:
-        callback(message)
+        def sync_work():
+            local_session = None
+            if wants_session:
+                local_session = DatabaseHelper.create_session()
+            try:
+                callback(message, local_session) if wants_session else callback(message)
+                if wants_session:
+                    local_session.commit()
+            except Exception:
+                if wants_session:
+                    local_session.rollback()
+                raise
+            finally:
+                if wants_session:
+                    local_session.close()
+
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(_SYNC_EXECUTOR, sync_work)
 
 
 # TODO: Add support for credentials
@@ -119,24 +150,35 @@ class Subscriber:
         subscription_path = self.get_subscription_path(subscription_name)
 
         def callback(message: Message):
-            if  subscription_config['exactly_once_delivery']:
+
+            if subscription_config['exactly_once_delivery']:
                 ack_future = message.ack_with_response()
-                try:
-                    # subscription_config['callback'](message)
-                    _handle_message(message, subscription_config['callback'])
-                    ack_future.ack()
-                except Exception:
-                    ack_future.nack()
-                return
-            try:
-                # subscription_config['callback'](message)
-                _handle_message(message, subscription_config['callback'])
-                # handler(message)
-                message.ack()
-            except Exception:
-                message.nack()
-            # self._handle_message(message, handler)
-            # self._loop.create_task(self._handle_message(message, handler))
+
+                def done_callback(future):
+                    exception = future.exception()
+                    if exception:
+                        print("Error in handler:", exception)
+                        ack_future.nack()
+                    else:
+                        ack_future.ack()
+                future = asyncio.run_coroutine_threadsafe(
+                    _handle_message(message, subscription_config['callback']),
+                    self._loop
+                )
+                future.add_done_callback(done_callback)
+            else:
+                def done_callback(future):
+                    exception = future.exception()
+                    if exception:
+                        print("Error in handler:", exception)
+                        message.nack()
+                    else:
+                        message.ack()
+                future = asyncio.run_coroutine_threadsafe(
+                    _handle_message(message, subscription_config['callback']),
+                    self._loop
+                )
+                future.add_done_callback(done_callback)
 
 
         streaming_pull_future = self._subscriber.subscribe(subscription_path, callback=callback)
@@ -159,24 +201,3 @@ class Subscriber:
         """
         tasks = [self._subscribe_to_subscription(subscription, subscription_config) for subscription, subscription_config in self._subscriptions.items()]
         await asyncio.gather(*tasks)
-
-    # def subscribe(self, subscription_name, callback):
-    #     subscription_path = self.get_subscription_path(subscription_name)
-    #
-    #     with self._subscriber:  # Manages the subscriber's lifecycle
-    #         streaming_pull_future = self._subscriber.subscribe(subscription_path, callback=callback)
-    #
-    #         print(f"Info: Listening for messages on {subscription_path}")
-    #
-    #         try:
-    #             # Block and keep the subscriber running
-    #             streaming_pull_future.result()
-    #         except KeyboardInterrupt:
-    #             print(f"Subscription interrupted")
-    #             streaming_pull_future.cancel()
-    #             streaming_pull_future.result()
-    #         except Exception as error:
-    #             print(f"Error: Something went wrong when listing to subscriptions: {error}")
-    #
-    # def start_listening(self):
-    #     with self._subscriber as subscriber:

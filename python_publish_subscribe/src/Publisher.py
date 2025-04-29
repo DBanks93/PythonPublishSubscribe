@@ -176,12 +176,12 @@ class Publisher:
         :return: List of results of each message
         """
 
-        topic, topic_name = self.get_topic(topic_name)
+        full_topic, _ = self.get_topic(topic_name)
 
         timeout = timeout or self._timout
 
         paired_futures: List[Tuple[Any, Future]] = [
-            (message, self.publish(topic_name, message, attributes, timeout, retry, topic, True))
+            (message, self.publish(topic_name, message, attributes, timeout, retry, full_topic, True))
             for message in messages
         ]
 

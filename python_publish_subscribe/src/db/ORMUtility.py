@@ -26,11 +26,11 @@ def get_registry() -> registry:
 
 
 # TODO: Revist - doesn't work currently since sqlalchemy will attempt to create the class before tablename is passed
-def orm_model(tablename: str):
-    def decorator(cls):
-        cls.__tablename__ = tablename
-        return cls
-    return decorator
+# def orm_model(tablename: str):
+#     def decorator(cls):
+#         cls.__tablename__ = tablename
+#         return cls
+#     return decorator
 
 
 def create_model(
