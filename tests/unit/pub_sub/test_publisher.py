@@ -5,13 +5,15 @@ import pytest
 from google.api_core.exceptions import AlreadyExists, InvalidArgument
 from google.cloud.pubsub_v1.futures import Future
 
-from examples.example import future
 from python_publish_subscribe.src.Publisher import Publisher
 from python_publish_subscribe.src.Publisher import convert_data_to_string
 from python_publish_subscribe.config import Config
 
 TEST_TOPIC_NAME = "test-topic"
 TEST_TOPIC = "projects/project_name/topics/topic_name"
+
+def test_create_topic(app):
+    assert app.create_topic(TEST_TOPIC_NAME)
 
 def test_converting_string():
     # Given
@@ -296,24 +298,36 @@ def test_publish_with_async(app, mock_publisher_client):
     # Then
     assert future.result() == 'mocked_response', "Expected the topic to be published"
 
-def test_publish_wrapper_success(app):
+def test_subscribe_wrapper_success(app):
     # Given
+    subscription_name = "test-sub"
+
+    with patch.object(app.subscriber, "create_subscription", return_value='mocked_create_response') as mock_create_subscription:
+        with patch.object(app.subscriber, "add_subscription", return_value='mocked_add_response') as mock_add_subscription:
+            @app.subscribe(subscription_name)
+            def subscribe(message):
+                return message
+
+        # When
+        # Then
+            mock_create_subscription.assert_not_called(), "A subscription was not created"
+            mock_add_subscription.assert_called_once_with(subscription_name, subscribe), "Subscription should've been added"
+
+def test_crate_subscribe_wrapper_success(app):
+    # Given
+    subscription_name = "test-sub"
     topic_name = "test-topic"
-    message = "test-data"
 
-    with patch.object(app.publisher, "publish", return_value='mocked_response') as mock_publish:
-        @app.publish(topic_name, timeout=20, retry="retry_option")
-        def publish():
-            return message
+    with patch.object(app.subscriber, "create_subscription", return_value='mocked_create_response') as mock_create_subscription:
+        with patch.object(app.subscriber, "add_subscription", return_value='mocked_add_response') as mock_add_subscription:
+            @app.subscribe(subscription_name, topic_name)
+            def subscribe(message):
+                return message
 
-    # When
-        result = publish()
-
-    # Then
-        assert result == 'mocked_response', "Expected the topic to be published"
-        mock_publish.assert_called_once_with(
-            "test-topic", "test-data", 20, "retry_option"
-        ), "Expected publish function to be called with correct arguments"
+        # When
+        # Then
+            mock_create_subscription.assert_called_once_with(subscription_name, topic_name), "A subscription was created"
+            mock_add_subscription.assert_called_once_with(subscription_name, subscribe), "Subscription should've been added"
 
 
 def test_publish_batch_success(app, mock_publisher_client, mock_get_topic):
@@ -325,15 +339,18 @@ def test_publish_batch_success(app, mock_publisher_client, mock_get_topic):
 
     with patch.object(app.publisher, 'publish') as mock_publish:
         mock_publish.side_effect = [mock_future for _ in range(len(data))]
+
         # When
-        futures = app.publisher.publish_batch(topic_name, data)
+        results = app.publisher.publish_batch(topic_name, data)
 
         # Then
-        assert len(futures) == len(data), "Expected all topics to be published"
+        assert len(results) == len(data), "Expected the same number of results as messages"
 
         for i in range(len(data)):
-            mock_publish.assert_any_call(topic_name, data[i], None, None, None, "projects/project_name/topics/topic_name", True)
-            assert futures[i].result() == 'mocked_response', f"Expected future {i}"
+            assert results[i][0] == data[i], "first element is the original message"
+            assert results[i][1] == 'mocked_response', "second element is the returned message_id"
+            assert results[i][2] is None, "no error on success"
+
 
 def test_publish_batch_failure(app, mock_publisher_client, mock_get_topic, capfd):
     # Given
@@ -346,11 +363,24 @@ def test_publish_batch_failure(app, mock_publisher_client, mock_get_topic, capfd
         mock_publish.side_effect = [mock_future for _ in range(len(data))]
 
         # When
-        futures = app.publisher.publish_batch(topic_name, data)
+        results = app.publisher.publish_batch(topic_name, data)
 
         # Then
-        assert len(futures) == len(data), "Expected all topics to be published"
-        assert "Error: Something went wrong when publishing batch: Timed out" in capfd.readouterr().out, "Expect a warning message to be printed"
+        assert len(results) == len(data), "Expected the same number of results as messages"
 
-        for i in range(len(futures)):
-            mock_publish.assert_any_call(topic_name, data[i], None, None, None, "projects/project_name/topics/topic_name", True)
+        captured_output = capfd.readouterr().out
+        assert "Error: Something went wrong when publishing a message in a batch: Timed out" in captured_output, "Expected a warning message to be printed"
+
+        for i in range(len(results)):
+            assert results[i][0] == data[i], f"Expected message {i} to match input data"
+            assert results[i][1] is None, f"Expected second result to be None for message {i}"
+            assert isinstance(results[i][2], TimeoutError), f"Expected TimeoutError for message {i}"
+
+def test_config_timeout(monkeypatch):
+    import google.cloud.pubsub_v1 as pubsub
+    from python_publish_subscribe.src import Publisher
+    monkeypatch.setattr(pubsub,'PublisherClient', lambda *args, **kwargs: None)
+
+    publisher = Publisher.Publisher(Config(), timout=100)
+
+    assert publisher._timout == 100, "Timeout should've been configured"

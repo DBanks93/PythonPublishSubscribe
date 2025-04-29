@@ -12,4 +12,13 @@ def set_pubsub_emulator_env_vars():
 
 @pytest.fixture
 def app():
-    yield PythonPublishSubscribe({'PROJECT_ID': 'test-project'})
+    config = {
+        'PROJECT_ID': 'test-project',
+        'DATABASE_DIALECT': 'asyncpg',
+        'DATABASE_USERNAME': 'appuser',
+        'DATABASE_PASSWORD': 'S3cret',
+        'DATABASE_HOST': 'localhost',
+        'DATABASE_PORT': '5432',
+        'DATABASE_NAME': 'integration',
+    }
+    yield PythonPublishSubscribe(config, database_connectivity=True)

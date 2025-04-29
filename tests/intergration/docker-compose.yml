@@ -15,3 +15,20 @@ services:
       retries: 3
       timeout: 10s
       start_period: 10s
+
+
+  postgres-database:
+    container_name: postgres-database
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=S3cret
+      - POSTGRES_USER=appuser
+      - POSTGRES_DB=integration
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+

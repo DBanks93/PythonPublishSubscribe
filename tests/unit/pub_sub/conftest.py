@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from google.cloud.pubsub_v1 import PublisherClient
 
 import pytest
@@ -29,3 +29,40 @@ def mock_get_topic(app):
         app.publisher._get_topic = mock_get_topic
         mock_get_topic.return_value = ("projects/project_name/topics/topic_name", "test-topic")
         yield mock_get_topic
+
+@pytest.fixture
+def mock_loop():
+    loop = Mock()
+    loop.is_running.return_value = False
+    loop.create_task = Mock()
+    loop.run_forever = Mock()
+    return loop
+
+@pytest.fixture
+def mock_database_helper(monkeypatch):
+    # Define a mock for the DatabaseHelper class
+    class FakeAsyncSession:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def commit(self): pass
+        async def rollback(self): pass
+
+    class FakeSession:
+        def __aenter__(self): return self
+        def __aexit__(self, *args): pass
+        def commit(self): pass
+        def rollback(self): pass
+
+    class FakeDBHelper:
+        is_async = True
+        @staticmethod
+        def is_setup(): return True
+        @staticmethod
+        def create_async_session(): return FakeAsyncSession()
+        @staticmethod
+        def create_session(): return FakeSession()
+
+    # Patch the DatabaseHelper class with the FakeDBHelper mock
+    monkeypatch.setattr("python_publish_subscribe.src.db.DatabaseHelper", FakeDBHelper)
+
+    return FakeDBHelper
