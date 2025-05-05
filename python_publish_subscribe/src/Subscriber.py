@@ -19,7 +19,6 @@ from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper, creat
 
 _SYNC_EXECUTOR = ThreadPoolExecutor()
 
-# TODO: Functionality changed need to check this
 async def _handle_message(message, callback):
     wants_session = 'session' in inspect.signature(callback).parameters
 
@@ -65,8 +64,6 @@ async def _handle_message(message, callback):
         await loop.run_in_executor(_SYNC_EXECUTOR, sync_work)
 
 
-# TODO: Add support for credentials
-# TODO: Test ability for other pubsub types (ONE_TIME_DELIVERY etc etc) and any other config settings
 class Subscriber:
     def __init__(self, config: Config, credentials: Credentials=None):
         self._subscriber: SubscriberClient = pubsub_v1.SubscriberClient(credentials=credentials)

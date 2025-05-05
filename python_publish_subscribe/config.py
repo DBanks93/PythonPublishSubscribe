@@ -71,6 +71,8 @@ class Config:
             self._config.update(data)
         elif throw_error:
             raise ValueError("Configuration data must be a dict")
+        else:
+            print("Warning: Configuration data must be a dict")
 
     def add_value_to_key(self, key, value):
         if not key in self._config:

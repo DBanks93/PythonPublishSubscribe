@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 PUB_SUB_SERVICE_NAME=pubsub-emulator
 PUB_SUB_HEALTH_URL=http://localhost:8085/v1/projects/test-project/topics
 

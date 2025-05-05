@@ -105,6 +105,7 @@ async def test_subscribe_decorator_async_integration(app):
 
 @pytest.mark.asyncio
 async def test_subscribe_decorator_async_integration(app):
+    # Given
     publisher = pubsub_v1.PublisherClient()
     topic_id   = "int-topic"
     topic_path = publisher.topic_path(app.config.get("PROJECT_ID"), topic_id)
@@ -123,9 +124,11 @@ async def test_subscribe_decorator_async_integration(app):
 
     await asyncio.sleep(1)
 
+    # When
     publish_future = publisher.publish(topic_path, b"hello world")
-    await wrap_future(publish_future)  # ensure it’s sent
+    await wrap_future(publish_future)
 
+    # Then
     for _ in range(10):
         if seen:
             break

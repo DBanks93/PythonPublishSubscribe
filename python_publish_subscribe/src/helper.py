@@ -41,7 +41,6 @@ def build_topic_string(topic_name: str, project_id: str) -> (str, str):
 
     :param topic_name: Name of the topic or complete topic url
     :param project_id: project id of the topic
-    :param config: the config to save it to
     :return: Tuple of the whole topic path and the topic name
     """
     if is_topic_topic_path(topic_name):

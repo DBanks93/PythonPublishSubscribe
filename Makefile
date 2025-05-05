@@ -14,7 +14,7 @@ unit_test:
 
 .PHONY: integration_test
 integration_test: integration_down integration_up
-	pipenv run pytest tests/intergration
+	pipenv run pytest tests/intergration --cov python_publish_subscribe --cov-report term-missing
 	$(MAKE) integration_down
 
 .PHONY: integration_up

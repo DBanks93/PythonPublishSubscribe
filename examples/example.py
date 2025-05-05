@@ -1,5 +1,8 @@
 import random
 
+from sqlalchemy.dialects.oracle.dictionary import all_users
+from sqlalchemy import select
+
 from python_publish_subscribe import PythonPublishSubscribe
 
 ### WON'T BE PART OF THE FRAMEWORK, ONLY DOING THIS FOR QUICK TESTING
@@ -37,14 +40,18 @@ def hello(message):
 
 app.create_topic('new_topic2') # Will produce a warning if topic already exists
 app.publisher.publish('new_topic2', "Hello2")
-# app.create_subscription('new_subscription2', 'new_topic2')
 
 # Will produce a warning if subscription already exists
 @app.subscribe("new_subscription2", topic_name="new_topic2")
 def hello2(message):
     print(message.data)
 
-# app.subscriber.add_subscription("new_subscription", hello)
+app.create_topic('async_topic') # Will produce a warning if topic already exists
+@app.subscribe("new_subscription_async", topic_name="async_topic")
+async def hello_async(message):
+    print(message.data)
+
+app.publisher.publish('async_topic', "Hello_Async")
 
 
 ### Database Handling ###
@@ -52,7 +59,6 @@ from python_publish_subscribe.src.db.DatabaseHelper import DatabaseHelper
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, String
 
-from python_publish_subscribe.src.db.ORMUtility import orm_model, get_base
 from python_publish_subscribe.src.db.BaseModel import BaseModel
 
 
