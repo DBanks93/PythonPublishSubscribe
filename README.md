@@ -3,10 +3,8 @@
 This is a framework designed to handle Publish Subscribe interactions.
 
 
-
-Currently, it only supports Google Pub/Sub Messaging Broker, however,
-there might be plans to support other message brokers
-such as RabbitMQ, Redis and AWS' Pub/Sub.
+This was created for my Universirty Dissertation.
+Due to time limitations there are aspects that haven't been included such as proper logging.
 
 ## Table of contents:
 - [Initialising](#initialising-the-framework)
