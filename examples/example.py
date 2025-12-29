@@ -1,11 +1,6 @@
 import random
 
-from sqlalchemy.dialects.oracle.dictionary import all_users
-from sqlalchemy import select
-
 from python_publish_subscribe import PythonPublishSubscribe
-
-### WON'T BE PART OF THE FRAMEWORK, ONLY DOING THIS FOR QUICK TESTING
 import os
 
 os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
@@ -27,6 +22,8 @@ def send_hello(name):
     return f"Hello {name}!"
 
 send_hello("Swansea")
+
+
 
 
 ### Subscribing ###
@@ -52,6 +49,8 @@ async def hello_async(message):
     print(message.data)
 
 app.publisher.publish('async_topic', "Hello_Async")
+
+
 
 
 ### Database Handling ###
